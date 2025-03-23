@@ -5,10 +5,10 @@ import Link from "next/link";
 
 const MedicalHistoryPage = () => {
   const patientInfo = {
-    name: "ปุณณวีร์ นามสกุล : พร้อมมูล",
+    name: "ปุณยวีร์ พร้อมมูล",
     age: 21,
     bloodType: "B",
-    chronicDisease: "-",
+    chronicDisease: "ไม่มี",
   };
 
   const historyData = [
@@ -19,6 +19,7 @@ const MedicalHistoryPage = () => {
           month: "ตุลาคม",
           records: [
             {
+              id: "1",
               date: 20,
               department: "ตรวจโรคทั่วไป",
               diagnosis: "Urticaria - Allergic urticaria",
@@ -30,6 +31,7 @@ const MedicalHistoryPage = () => {
           month: "มิถุนายน",
           records: [
             {
+              id: "2",
               date: 25,
               department: "อายุรกรรม",
               diagnosis: "Non-Gonococcal urethritis",
@@ -42,39 +44,68 @@ const MedicalHistoryPage = () => {
   ];
 
   return (
-    <div className="bg-white min-h-screen p-4 max-w-md mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Link href="/">
-          <FiChevronLeft className="text-gray-600 text-2xl cursor-pointer" />
-        </Link>
-        <h2 className="text-xl font-bold">ประวัติการรักษา</h2>
-      </div>
-
-      {/* Patient Info */}
-      <p className="text-gray-700 mt-2 text-sm">
-        ชื่อ : {patientInfo.name} อายุ : {patientInfo.age} หมู่เลือด : {patientInfo.bloodType} โรคประจำตัว : {patientInfo.chronicDisease}
-      </p>
-
-      {/* Medical History */}
-      {historyData.map((yearData, index) => (
-        <div key={index} className="mt-4">
-          <h3 className="text-lg font-bold">{yearData.year}</h3>
-          {yearData.months.map((monthData, monthIndex) => (
-            <div key={monthIndex} className="mt-2 border-t pt-2">
-              <h4 className="text-md font-semibold text-gray-700">{monthData.month}</h4>
-              {monthData.records.map((record, recordIndex) => (
-                <div key={recordIndex} className="mt-2 p-2 bg-gray-100 rounded-lg">
-                  <p className="text-gray-800">วันที่ {record.date}</p>
-                  <p className="text-gray-700 text-sm">แผนก : {record.department}</p>
-                  <p className="text-gray-600 text-sm">{record.diagnosis}</p>
-                  <p className="text-gray-500 text-sm">{record.patientType}</p>
-                </div>
-              ))}
-            </div>
-          ))}
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-gray-100 flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+      <div className="w-full max-w-3xl">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-6 sm:p-8 rounded-2xl shadow-lg flex items-center gap-4 mb-8">
+          <Link href="/login" className="text-white hover:opacity-90 transition-all duration-300 transform hover:scale-105">
+            <FiChevronLeft className="text-3xl sm:text-4xl" />
+          </Link>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-wide">ประวัติการรักษา</h2>
         </div>
-      ))}
+
+        {/* Patient Info */}
+        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-md mb-8 transition-all duration-300 hover:shadow-xl border border-gray-100">
+          <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-blue-900 mb-6">ข้อมูลผู้ป่วย</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <p className="text-lg sm:text-xl text-gray-700">
+              <strong className="text-blue-900">ชื่อ:</strong> {patientInfo.name}
+            </p>
+            <p className="text-lg sm:text-xl text-gray-700">
+              <strong className="text-blue-900">อายุ:</strong> {patientInfo.age} ปี
+            </p>
+            <p className="text-lg sm:text-xl text-gray-700">
+              <strong className="text-blue-900">หมู่เลือด:</strong> {patientInfo.bloodType}
+            </p>
+            <p className="text-lg sm:text-xl text-gray-700">
+              <strong className="text-blue-900">โรคประจำตัว:</strong> {patientInfo.chronicDisease}
+            </p>
+          </div>
+        </div>
+
+        {/* Medical History */}
+        {historyData.map((yearData, index) => (
+          <div
+            key={index}
+            className="bg-white p-6 sm:p-8 rounded-2xl shadow-md mb-8 transition-all duration-300 hover:shadow-xl border border-gray-100"
+          >
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-blue-900 mb-6">ปี {yearData.year}</h3>
+            {yearData.months.map((monthData, monthIndex) => (
+              <div key={monthIndex} className="mt-6 border-t border-gray-200 pt-6">
+                <h4 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800 mb-4">{monthData.month}</h4>
+                {monthData.records.map((record, recordIndex) => (
+                  <Link href={`/results/${record.id}`} key={recordIndex}>
+                    <div className="group p-4 sm:p-5 bg-gray-50 rounded-xl shadow-sm mb-4 hover:bg-blue-50 hover:shadow-md transition-all duration-300 transform hover:scale-105 cursor-pointer border border-gray-200">
+                      <p className="text-lg sm:text-xl text-blue-900 font-semibold">
+                        วันที่ {record.date}
+                      </p>
+                      <p className="text-base sm:text-lg text-gray-800">
+                        <strong className="text-blue-900">แผนก:</strong> {record.department}
+                      </p>
+                      <p className="text-base sm:text-lg text-gray-700">
+                        <strong className="text-blue-900">วินิจฉัย:</strong> {record.diagnosis}
+                      </p>
+                      <p className="text-base sm:text-lg text-gray-600">
+                        <strong className="text-blue-900">ประเภทผู้ป่วย:</strong> {record.patientType}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

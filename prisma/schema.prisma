@@ -7,10 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Appointment {
+model appointment {
   id         Int      @id @default(autoincrement())
-  date       DateTime
-  time       String
-  department String
+  userId     Int
+  date       DateTime @db.DateTime(0)
+  time       String   @db.VarChar(20)
+  department String   @db.VarChar(100)
   createdAt  DateTime @default(now())
+  user       user     @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "appointment_userId_fkey")
+}
+
+model user {
+  id          Int           @id @default(autoincrement())
+  citizenId   String        @unique(map: "citizenId")
+  phone       String        @db.VarChar(20) // เพิ่มความยาวให้ชัดเจน
+  password    String        @db.VarChar(255) // ขยายเพื่อรองรับ hash
+  createdAt   DateTime      @default(now())
+  appointment appointment[]
 }
