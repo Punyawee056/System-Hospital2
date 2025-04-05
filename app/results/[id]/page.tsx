@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { FiChevronLeft } from "react-icons/fi";
 import Link from "next/link";
 
@@ -29,8 +29,10 @@ const resultsData = [
   },
 ];
 
-const ResultPage = ({ params }: { params: { id: string } }) => {
-  const result = resultsData.find((item) => item.id === parseInt(params.id));
+const ResultPage = () => {
+  const params = useParams();
+  const id = params?.id?.toString();
+  const result = resultsData.find((item) => item.id === parseInt(id || ""));
 
   if (!result) {
     return (

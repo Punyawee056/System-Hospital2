@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Maechanhospital",
   description: "ระบบบริการออนไลน์ของโรงพยาบาลแม่จัน",
+  icons: {
+    icon: "/favicon.ico.png", // ✅ เปลี่ยน path ตามไฟล์ที่อยู่ใน public
+  },
 };
 
 export default function RootLayout({

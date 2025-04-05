@@ -6,8 +6,8 @@ import bcrypt from "bcrypt";
 const pool = mysql.createPool({
   host: "localhost",
   user: "root",
-  password: "123456",
-  database: "hospital_db",
+  password: "",
+  database: "hospital_booking", 
   waitForConnections: true,
   connectionLimit: 10,
 });

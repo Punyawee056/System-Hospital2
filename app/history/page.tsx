@@ -2,14 +2,54 @@
 
 import { FiChevronLeft } from "react-icons/fi";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
+interface PatientInfo {
+  prefix: string;
+  name: string;
+  age: string;
+  IdCard: string;
+  bloodType: string;
+  DrugAllergy: string;
+  chronicDisease: string;
+}
 
 const MedicalHistoryPage = () => {
-  const patientInfo = {
-    name: "ปุณยวีร์ พร้อมมูล",
-    age: 21,
+  const [patientInfo, setPatientInfo] = useState<PatientInfo>({
+    prefix: "",
+    name: "",
+    age: "",
+    IdCard: "",
     bloodType: "B",
+    DrugAllergy: "NSAIDs",
     chronicDisease: "ไม่มี",
-  };
+  });
+
+  useEffect(() => {
+    const citizenId = localStorage.getItem("citizenId");
+    if (citizenId) {
+      fetch(`/api/user?citizenId=${citizenId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          const birthDate = new Date(data.birthday);
+          const now = new Date();
+          const diff = new Date(now.getTime() - birthDate.getTime());
+          const years = diff.getUTCFullYear() - 1970;
+          const months = diff.getUTCMonth();
+          const days = diff.getUTCDate() - 1;
+          const ageText = `${years} ปี ${months} เดือน ${days} วัน`;
+          setPatientInfo({
+            prefix: data.prefix,
+            name: data.name,
+            age: ageText,
+            IdCard: data.citizenId,
+            bloodType: "B",
+            DrugAllergy: "NSAIDs",
+            chronicDisease: "ไม่มี",
+          });
+        });
+    }
+  }, []);
 
   const historyData = [
     {
@@ -59,16 +99,22 @@ const MedicalHistoryPage = () => {
           <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-blue-900 mb-6">ข้อมูลผู้ป่วย</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <p className="text-lg sm:text-xl text-gray-700">
-              <strong className="text-blue-900">ชื่อ:</strong> {patientInfo.name}
+              <strong className="text-blue-900">ชื่อ:</strong> {patientInfo.prefix} {patientInfo.name || "-"}
             </p>
             <p className="text-lg sm:text-xl text-gray-700">
-              <strong className="text-blue-900">อายุ:</strong> {patientInfo.age} ปี
+              <strong className="text-blue-900">อายุ:</strong> {patientInfo.age || "-"}
             </p>
             <p className="text-lg sm:text-xl text-gray-700">
               <strong className="text-blue-900">หมู่เลือด:</strong> {patientInfo.bloodType}
             </p>
             <p className="text-lg sm:text-xl text-gray-700">
               <strong className="text-blue-900">โรคประจำตัว:</strong> {patientInfo.chronicDisease}
+            </p>
+            <p className="text-lg sm:text-xl text-gray-700">
+              <strong className="text-blue-900">ประวัติการแพ้ยา:</strong> {patientInfo.DrugAllergy}
+            </p>
+            <p className="text-lg sm:text-xl text-gray-700">
+              <strong className="text-blue-900">เลขบัตรประชาชน:</strong> {patientInfo.IdCard || "-"}
             </p>
           </div>
         </div>

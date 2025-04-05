@@ -76,7 +76,7 @@ const LoginPage = () => {
             value={citizenId}
             onChange={handleCitizenIdChange}
             placeholder="กรอกเลขบัตรประชาชน 13 หลัก"
-            className="w-full p-4 text-xl border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            className="w-full p-4 text-xl text-black  border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
             maxLength={13}
           />
         </div>
@@ -92,7 +92,7 @@ const LoginPage = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="กรอกรหัสผ่าน"
-              className="w-full p-4 text-xl border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-12"
+              className="w-full p-4 text-xl border text-black  border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-12"
             />
             <button
               type="button"

@@ -1,42 +1,52 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma/lib/prisma";
 
+// 🔧 helper function
+async function getUserByCitizenId(citizenId: string) {
+  return await prisma.user.findUnique({
+    where: { citizenId },
+    select: { id: true },
+  });
+}
+
 // ✅ GET: ดึงข้อมูลใบนัดจาก citizenId
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const citizenId = searchParams.get("citizenId");
+    const { searchParams } = new URL(req.url)
+    const citizenId = searchParams.get("citizenId")
 
     if (!citizenId) {
-      return NextResponse.json({ error: "❌ Missing citizenId" }, { status: 400 });
+      return NextResponse.json({ error: "❌ Missing citizenId" }, { status: 400 })
     }
 
-    // ✅ ค้นหา userId จาก citizenId
+    // ค้นหา user จาก citizenId
     const user = await prisma.user.findUnique({
       where: { citizenId },
       select: { id: true },
-    });
+    })
 
     if (!user) {
-      return NextResponse.json({ error: "❌ User not found" }, { status: 404 });
+      return NextResponse.json({ error: "❌ User not found" }, { status: 404 })
     }
 
-    // ✅ ค้นหาใบนัดทั้งหมดของ user
+    // ดึงใบนัดทั้งหมดของ user (เรียงจากวันล่าสุดขึ้นก่อน)
     const appointments = await prisma.appointment.findMany({
       where: { userId: user.id },
       orderBy: { date: "asc" },
-    });
+    })
 
-    // ✅ ปรับวันที่ให้อยู่ในรูปแบบ ISO String เพื่อให้ Client แปลงได้ถูกต้อง
-    const adjustedAppointments = appointments.map((appointment) => ({
-      ...appointment,
-      date: appointment.date.toISOString(),
-    }));
+    // ปรับรูปแบบวันให้เป็น string
+    const formatted = appointments.map((a) => ({
+      id: a.id,
+      department: a.department,
+      date: a.date.toISOString(),
+      time: a.time,
+    }))
 
-    return NextResponse.json(adjustedAppointments, { status: 200 });
+    return NextResponse.json(formatted)
   } catch (error) {
-    console.error("🚨 Error fetching appointments:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("🚨 GET /api/appointment error:", error)
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }
 
@@ -50,38 +60,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "❌ Missing required fields" }, { status: 400 });
     }
 
-    // ✅ ค้นหา userId จาก citizenId
-    const user = await prisma.user.findUnique({
-      where: { citizenId },
-      select: { id: true },
-    });
-
+    const user = await getUserByCitizenId(citizenId);
     if (!user) {
       return NextResponse.json({ error: "❌ User not found" }, { status: 404 });
     }
 
-    // ✅ แปลงวันที่โดยระบุ Time Zone เป็น UTC+7 (Asia/Bangkok)
     const parsedDate = new Date(`${date}T00:00:00+07:00`);
     if (isNaN(parsedDate.getTime())) {
       return NextResponse.json({ error: "❌ Invalid date format" }, { status: 400 });
     }
 
-    // ✅ เพิ่มการ log เพื่อตรวจสอบวันที่
-    console.log("Parsed Date:", parsedDate.toString());
-
-    // ✅ ตรวจสอบการจองซ้ำ
     const existingAppointment = await prisma.appointment.findFirst({
-      where: { userId: user.id, date: parsedDate, time, department },
+      where: {
+        userId: user.id,
+        date: parsedDate,
+        time,
+        department,
+      },
     });
 
     if (existingAppointment) {
       return NextResponse.json(
-        { error: "❌ You already have an appointment at this time and department" },
+        { error: "❌ เวลานี้คุณได้แจ้งแล้ว" },
         { status: 409 }
       );
     }
 
-    // ✅ บันทึกใบนัด
     const appointment = await prisma.appointment.create({
       data: {
         department,
@@ -102,40 +106,37 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const idParam = searchParams.get("id");
     const citizenId = searchParams.get("citizenId");
 
-    if (!id || !citizenId) {
+    if (!idParam || !citizenId) {
       return NextResponse.json({ error: "❌ Missing ID or citizenId" }, { status: 400 });
     }
 
-    // ✅ ค้นหา userId จาก citizenId
-    const user = await prisma.user.findUnique({
-      where: { citizenId },
-      select: { id: true },
-    });
+    const id = Number(idParam);
+    if (isNaN(id)) {
+      return NextResponse.json({ error: "❌ Invalid appointment ID" }, { status: 400 });
+    }
 
+    const user = await getUserByCitizenId(citizenId);
     if (!user) {
       return NextResponse.json({ error: "❌ User not found" }, { status: 404 });
     }
 
-    // ✅ ตรวจสอบว่าใบนัดมีอยู่หรือไม่
     const appointment = await prisma.appointment.findUnique({
-      where: { id: Number(id) },
+      where: { id },
     });
 
     if (!appointment) {
       return NextResponse.json({ error: "❌ Appointment not found" }, { status: 404 });
     }
 
-    // ✅ ตรวจสอบว่าเป็นเจ้าของใบนัด
     if (appointment.userId !== user.id) {
       return NextResponse.json({ error: "❌ Unauthorized" }, { status: 403 });
     }
 
-    // ✅ ลบใบนัด
     await prisma.appointment.delete({
-      where: { id: Number(id) },
+      where: { id },
     });
 
     return NextResponse.json(

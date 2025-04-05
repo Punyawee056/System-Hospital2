@@ -24,6 +24,8 @@ model user {
   citizenId   String        @unique(map: "citizenId")
   phone       String        @db.VarChar(20) // เพิ่มความยาวให้ชัดเจน
   password    String        @db.VarChar(255) // ขยายเพื่อรองรับ hash
+  name        String?       @db.VarChar(100)   // ใส่ ? เพื่อให้ nullable
+  birthday    DateTime?     @db.Date
   createdAt   DateTime      @default(now())
   appointment appointment[]
 }

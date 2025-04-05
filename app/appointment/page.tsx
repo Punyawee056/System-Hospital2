@@ -1,107 +1,151 @@
-// pages/appointment.tsx
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { FiChevronLeft, FiCalendar } from "react-icons/fi";
-import { FaHospital } from "react-icons/fa";
-import Link from "next/link";
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
+import { FiChevronLeft, FiCalendar } from "react-icons/fi"
+import Link from "next/link"
 
 interface Appointment {
-  id: number;
-  department: string;
-  date: string;
-  time: string;
-  status: string;
+  id: number
+  department: string
+  date: string
+  time: string
+  status: string
 }
 
 const AppointmentPage = () => {
-  const router = useRouter();
-  const [citizenId, setCitizenId] = useState<string | null>(null);
-  const [department, setDepartment] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedTime, setSelectedTime] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [appointments, setAppointments] = useState<Appointment[]>([]); // เพิ่ม state เพื่อเก็บรายการนัดหมาย
-  const [showAppointments, setShowAppointments] = useState(false); // เพิ่ม state เพื่อควบคุมการแสดงรายการนัดหมาย
-  const [fetchingAppointments, setFetchingAppointments] = useState(false); // เพิ่ม state เพื่อจัดการ loading ขณะดึงข้อมูล
+  const router = useRouter()
+  const [citizenId, setCitizenId] = useState<string | null>(null)
+  const [fullName, setFullName] = useState("")
+  const [department, setDepartment] = useState("")
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedTime, setSelectedTime] = useState("")
+  const [availableTimes, setAvailableTimes] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [showAppointments, setShowAppointments] = useState(false)
+  const [fetchingAppointments, setFetchingAppointments] = useState(false)
+  const [departments, setDepartments] = useState<{ id: number; name: string }[]>([])
 
   useEffect(() => {
-    const storedCitizenId = localStorage.getItem("citizenId");
+    const storedCitizenId = localStorage.getItem("citizenId")
     if (storedCitizenId) {
-      setCitizenId(storedCitizenId);
+      setCitizenId(storedCitizenId)
     } else {
-      alert("⚠ กรุณาเข้าสู่ระบบก่อนทำการนัดหมาย");
-      router.push("/login");
+      alert("⚠ กรุณาเข้าสู่ระบบก่อนทำการนัดหมาย")
+      router.push("/login")
     }
-  }, [router]);
 
-  const departments = ["ตรวจทั่วไป", "ทันตกรรม", "กายภาพบำบัด", "ตรวจเลือด", "ตรวจหัวใจ", "ตรวจร่างกาย", ];
-  const availableTimes = ["09:00 - 09:45", "10:00 - 10:45", "13:00 - 13:45", "14:00 - 14:45", ];
+    fetch("/api/departments")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setDepartments(data)
+        } else {
+          console.error("❌ departments API did not return an array:", data)
+          setDepartments([])
+        }
+      })
+      .catch((err) => {
+        console.error("🚨 Error loading departments:", err)
+        alert("❌ ไม่สามารถโหลดรายการแผนกได้")
+        setDepartments([])
+      })
+  }, [router])
+
+  useEffect(() => {
+    if (!department || !selectedDate) return
+
+    fetch("/api/available-times", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        department,
+        date: selectedDate.toISOString().split("T")[0],
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!Array.isArray(data)) {
+          console.error("เวลาที่ได้ไม่ถูกต้อง:", data)
+          setAvailableTimes([])
+          return
+        }
+
+        const times = data.map(
+          (slot: any) => `${slot.start_time.slice(0, 5)} - ${slot.end_time.slice(0, 5)}`
+        )
+        setAvailableTimes(times)
+      })
+      .catch((err) => {
+        console.error("โหลดเวลาไม่สำเร็จ:", err)
+        setAvailableTimes([])
+      })
+  }, [department, selectedDate])
 
   const handleSubmit = async () => {
-    if (!citizenId || !department || !selectedDate || !selectedTime) {
-      alert("⚠ กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
+    if (!citizenId || !fullName || !department || !selectedDate || !selectedTime) {
+      alert("⚠ กรุณากรอกข้อมูลให้ครบถ้วน")
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
     try {
       const response = await fetch("/api/appointment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           citizenId,
+          fullName,
           department,
           date: selectedDate.toISOString().split("T")[0],
           time: selectedTime,
         }),
-      });
+      })
 
-      const data = await response.json();
+      const data = await response.json()
       if (response.ok) {
-        alert("✅ บันทึกการนัดหมายสำเร็จ!");
-        router.push(`/appointment/${data.id}`);
+        alert("✅ บันทึกการนัดหมายสำเร็จ!")
+        router.push(`/appointment/${data.id}`)
       } else {
-        alert(`❌ เกิดข้อผิดพลาด: ${data.error || "ไม่สามารถบันทึกการนัดหมายได้"}`);
+        alert(`❌ เกิดข้อผิดพลาด: ${data.error || "ไม่สามารถบันทึกการนัดหมายได้"}`)
       }
     } catch (error) {
-      console.error("🚨 Error submitting appointment:", error);
-      alert("❌ เกิดข้อผิดพลาด ไม่สามารถบันทึกการนัดหมายได้");
+      console.error("🚨 Error submitting appointment:", error)
+      alert("❌ เกิดข้อผิดพลาด ไม่สามารถบันทึกการนัดหมายได้")
     }
-    setLoading(false);
-  };
+    setLoading(false)
+  }
 
   const handleViewAppointments = async () => {
     if (!citizenId) {
-      alert("⚠ กรุณาเข้าสู่ระบบก่อนดูใบนัด");
-      router.push("/login");
-      return;
+      alert("⚠ กรุณาเข้าสู่ระบบก่อนดูใบนัด")
+      router.push("/login")
+      return
     }
 
-    setFetchingAppointments(true);
+    setFetchingAppointments(true)
     try {
-      const response = await fetch(`/api/appointment?citizenId=${citizenId}`);
-      const data = await response.json();
+      const response = await fetch(`/api/appointment?citizenId=${citizenId}`)
+      const data = await response.json()
       if (response.ok) {
-        setAppointments(data);
-        setShowAppointments(true); // แสดงรายการนัดหมาย
+        setAppointments(data)
+        setShowAppointments(true)
       } else {
-        alert(`❌ เกิดข้อผิดพลาด: ${data.error || "ไม่สามารถดึงข้อมูลนัดหมายได้"}`);
+        alert(`❌ เกิดข้อผิดพลาด: ${data.error || "ไม่สามารถดึงข้อมูลนัดหมายได้"}`)
       }
     } catch (error) {
-      console.error("🚨 Error fetching appointments:", error);
-      alert("❌ เกิดข้อผิดพลาด ไม่สามารถดึงข้อมูลนัดหมายได้");
+      console.error("🚨 Error fetching appointments:", error)
+      alert("❌ เกิดข้อผิดพลาด ไม่สามารถดึงข้อมูลนัดหมายได้")
     } finally {
-      setFetchingAppointments(false);
+      setFetchingAppointments(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center px-4 py-8 md:py-12">
-      {/* Header Section */}
       <div className="w-full max-w-2xl flex items-center justify-between mb-8">
         <Link href="/login" className="text-gray-700 hover:text-blue-800 transition-all duration-300">
           <FiChevronLeft className="text-3xl md:text-4xl" />
@@ -111,32 +155,39 @@ const AppointmentPage = () => {
         </h2>
       </div>
 
-      {/* Form Container or Appointments List */}
       {!showAppointments ? (
         <div className="w-full max-w-2xl bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100">
-          {/* Department Selection */}
+          {/* ชื่อผู้จอง */}
           <div className="mb-6">
-            <label className="block text-lg md:text-xl font-medium text-blue-900 mb-2">เลือกแผนก</label>
-            <div className="relative">
-              <FaHospital className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 text-xl md:text-2xl" />
-              <select
-                className="w-full pl-12 pr-4 py-3 md:py-4 border border-gray-300 rounded-lg text-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-              >
-                <option value="" disabled>
-                  กรุณาเลือกแผนก
-                </option>
-                {departments.map((dept, index) => (
-                  <option key={index} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <label className="block text-lg md:text-xl font-medium text-blue-900 mb-2">ชื่อผู้จอง</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="กรอกชื่อ-นามสกุล"
+              className="w-full px-4 py-3 md:py-4 border rounded-lg text-lg bg-white border-gray-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+            />
           </div>
 
-          {/* Date Picker */}
+          {/* แผนก */}
+          <div className="mb-6">
+            <label className="block text-lg md:text-xl font-medium text-blue-900 mb-2">เลือกแผนก</label>
+            <select
+              className={`w-full px-4 py-3 md:py-4 border rounded-lg text-lg bg-white transition-all duration-300
+                ${department ? "text-black font-semibold border-gray-800" : "text-gray-400"}`}
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+            >
+              <option value="" disabled>กรุณาเลือกแผนก</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.name}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* วันที่ */}
           <div className="mb-6">
             <label className="block text-lg md:text-xl font-medium text-blue-900 mb-2">เลือกวันที่</label>
             <div className="relative">
@@ -145,34 +196,43 @@ const AppointmentPage = () => {
                 selected={selectedDate}
                 onChange={(date) => setSelectedDate(date)}
                 dateFormat="yyyy-MM-dd"
-                className="w-full pl-12 pr-4 py-3 md:py-4 border border-gray-300 rounded-lg text-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
                 placeholderText="เลือกวันที่"
-                minDate={new Date()} // Restrict to future dates only
+                minDate={new Date()}
+                className={`w-full pl-12 pr-4 py-3 md:py-4 border rounded-lg text-lg bg-white transition-all duration-300
+                  ${selectedDate
+                    ? "text-black font-semibold border-black"
+                    : "text-gray-400 border-gray-300"
+                  }`}
               />
             </div>
           </div>
 
-          {/* Time Selection */}
+          {/* เวลา */}
           <div className="mb-6">
             <label className="block text-lg md:text-xl font-medium text-blue-900 mb-2">เลือกเวลา</label>
-            <div className="grid grid-cols-2 gap-3 md:gap-4">
-              {availableTimes.map((time, index) => (
-                <button
-                  key={index}
-                  className={`py-3 md:py-4 rounded-lg text-lg font-medium transition-all duration-300 ${
-                    selectedTime === time
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "bg-gray-100 text-blue-900 hover:bg-blue-50 border border-gray-300"
-                  }`}
-                  onClick={() => setSelectedTime(time)}
-                >
-                  {time}
-                </button>
-              ))}
-            </div>
+            {availableTimes.length === 0 ? (
+              <p className="text-sm text-gray-500">ไม่มีช่วงเวลาที่ว่างในวันนี้</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                {availableTimes.map((time, index) => (
+                  <button
+                    key={index}
+                    className={`py-3 md:py-4 rounded-lg text-lg font-medium transition-all duration-300 ${
+                      selectedTime === time
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "bg-gray-100 text-blue-900 hover:bg-blue-50 border border-gray-300"
+                    }`}
+                    onClick={() => setSelectedTime(time)}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : (
+        // รายการนัด
         <div className="w-full max-w-2xl bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100">
           {fetchingAppointments ? (
             <div className="text-center text-gray-600 text-lg">⏳ กำลังโหลด...</div>
@@ -192,11 +252,7 @@ const AppointmentPage = () => {
                         วันที่: {new Date(appointment.date).toLocaleDateString("th-TH")}
                       </p>
                       <p className="text-gray-600">เวลา: {appointment.time}</p>
-                      <p
-                        className={`text-sm ${
-                          appointment.status === "pending" ? "text-yellow-600" : "text-green-600"
-                        }`}
-                      >
+                      <p className={`text-sm ${appointment.status === "pending" ? "text-yellow-600" : "text-green-600"}`}>
                         สถานะ: {appointment.status === "pending" ? "รอการยืนยัน" : "ยืนยันแล้ว"}
                       </p>
                     </div>
@@ -213,7 +269,7 @@ const AppointmentPage = () => {
         </div>
       )}
 
-      {/* Buttons */}
+      {/* ปุ่มล่าง */}
       <div className="w-full max-w-2xl mt-8 space-y-4">
         {!showAppointments ? (
           <>
@@ -241,7 +297,7 @@ const AppointmentPage = () => {
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AppointmentPage;
+export default AppointmentPage
